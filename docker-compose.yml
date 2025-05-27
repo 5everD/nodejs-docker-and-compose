@@ -4,7 +4,7 @@ services:
     build:
       context: frontend
       dockerfile: Dockerfile
-    image: kupipodariday-frontend-ready
+    image: kupipodariday-frontend:1.0.0
     ports:
       - "8080:80"
     networks:
@@ -16,7 +16,7 @@ services:
     build:
       context: backend
       dockerfile: Dockerfile
-    image: kupipodariday-backend-ready
+    image: kupipodariday-backend:1.0.0
     env_file:
       - ./backend/.env
     ports:
