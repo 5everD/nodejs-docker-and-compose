@@ -1,144 +1,153 @@
+import { type Repository } from 'typeorm';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
-import { Wish } from './entities/wish.entity';
-import { User } from '../users/entities/user.entity';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
+import { Wish } from './entities/wish.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class WishesService {
   constructor(
-    private dataSource: DataSource,
     @InjectRepository(Wish)
-    private readonly wishRepository: Repository<Wish>,
+    private readonly wishesRepository: Repository<Wish>,
+    private usersService: UsersService,
   ) {}
 
-  async create(createWishDto: CreateWishDto, owner: User): Promise<Wish> {
-    const newWish = this.wishRepository.create({
-      ...createWishDto,
-      owner: { id: owner.id },
+  async create(userId: number, createWishDto: CreateWishDto) {
+    const { name, link, image, price, description } = createWishDto;
+    const user = await this.usersService.findById(userId);
+    const wish = this.wishesRepository.create({
+      name,
+      link,
+      image,
+      price,
+      description,
+      raised: 0,
+      owner: user,
+      offers: [],
     });
-    return await this.wishRepository.save(newWish);
+
+    await this.wishesRepository.save(wish);
+
+    return { name, link, image, price, description };
   }
 
-  async findAll(): Promise<Wish[]> {
-    return await this.wishRepository.find();
-  }
-
-  async findOne(id: number): Promise<Wish | null> {
-    return await this.wishRepository.findOne({
-      where: { id },
-      relations: {
-        owner: true,
-        offers: {
-          user: true,
-        },
-      },
-    });
-  }
-
-  async update(
-    id: number,
-    updateWishDto: UpdateWishDto,
-    user: User,
-  ): Promise<Wish | null> {
-    const wish = await this.findOne(id);
-
-    if (wish?.owner.id !== user.id) {
-      throw new BadRequestException('Недостаточно прав для редактирования');
-    }
-
-    await this.wishRepository.update(id, updateWishDto);
-    return await this.wishRepository.findOne({ where: { id } });
-  }
-
-  async remove(id: number, user: User): Promise<Wish | null> {
-    const wish = await this.findOne(id);
-
-    if (wish?.owner.id !== user.id) {
-      throw new BadRequestException('Недостаточно прав для удаления');
-    }
-
-    await this.wishRepository.delete(id);
-
-    return wish;
-  }
-
-  async findUserWishes(user: User): Promise<Wish[]> {
-    return await this.wishRepository.find({
-      where: { owner: { id: user.id } },
-    });
-  }
-
-  async copyWish(id: number, user: User): Promise<Wish | null> {
-    const wish = await this.findOne(id);
-
-    if (!wish) {
-      throw new NotFoundException('Такого подарка не существует');
-    }
-
-    const wishData: CreateWishDto = {
-      name: wish.name,
-      link: wish.link,
-      image: wish.image,
-      price: wish.price,
-      description: wish.description,
-    };
-
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const insertedWish = await queryRunner.manager.insert(Wish, {
-        ...wishData,
-        owner: user,
-        offers: [],
-      });
-
-      wish.copied += 1;
-      await queryRunner.manager.save(wish);
-
-      await queryRunner.commitTransaction();
-
-      return await this.findOne(insertedWish.identifiers[0].id as number);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw new Error('Что-то пошло не так');
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  findLastWishes() {
-    return this.wishRepository.find({
-      relations: {
-        owner: true,
-        offers: true,
-      },
+  async getLast() {
+    const lastWishes = await this.wishesRepository.find({
+      relations: { owner: true, offers: true },
       order: {
         createdAt: 'DESC',
       },
       take: 40,
     });
+
+    return lastWishes;
   }
 
-  findTopWishes() {
-    return this.wishRepository.find({
-      relations: {
-        owner: true,
-        offers: true,
-      },
+  async getTop() {
+    const topWishes = await this.wishesRepository.find({
+      relations: { owner: true, offers: true },
       order: {
         copied: 'DESC',
       },
-      take: 10,
+      take: 40,
     });
+
+    return topWishes;
+  }
+
+  async findOne(id: number) {
+    const wish = await this.wishesRepository.findOne({
+      where: { id },
+      relations: { owner: true, offers: true },
+    });
+
+    return wish;
+  }
+
+  async updateOne(
+    userId: number,
+    wishId: number,
+    updateWishDto: UpdateWishDto,
+  ) {
+    const wish = await this.findOne(wishId);
+
+    if (!wish) {
+      throw new BadRequestException('Подарок не найден');
+    }
+
+    if (wish.owner.id !== userId) {
+      throw new ForbiddenException(
+        'Редактировать можно только свои свои подарки',
+      );
+    }
+
+    if (wish.raised > 0) {
+      throw new BadRequestException(
+        'Вы не можете редактировать этот подарок, так как уже идет сбор средств',
+      );
+    }
+
+    await this.wishesRepository.update(wishId, updateWishDto);
+
+    return {};
+  }
+
+  async removeOne(userId: number, wishId: number) {
+    const wish = await this.findOne(wishId);
+
+    if (!wish) {
+      throw new BadRequestException('Подарок не найден');
+    }
+
+    if (wish.owner.id !== userId) {
+      throw new ForbiddenException(
+        'Удалять можно только свои собственные подарки',
+      );
+    }
+
+    return this.wishesRepository.delete(wishId);
+  }
+
+  async copyOne(userId: number, wishId: number) {
+    // @ts-ignore
+    const { name, link, image, price, description } = await this.findOne(
+      wishId,
+    );
+
+    const existingCopy = await this.wishesRepository.findOne({
+      where: {
+        owner: { id: userId },
+        name,
+        link,
+        image,
+        price,
+        description,
+      },
+    });
+
+    if (existingCopy) {
+      throw new BadRequestException('Вы уже копировали себе этот подарок');
+    }
+
+    await this.wishesRepository.increment({ id: wishId }, 'copied', 1);
+
+    const copiedWish = this.wishesRepository.create({
+      name,
+      link,
+      image,
+      price,
+      description,
+      owner: { id: userId },
+    });
+
+    await this.wishesRepository.save(copiedWish);
+
+    return {};
   }
 }

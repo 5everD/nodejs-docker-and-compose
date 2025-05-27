@@ -1,78 +1,49 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinTable,
-  ManyToMany,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import {
-  IsDate,
-  IsEmail,
-  IsInt,
-  IsString,
-  IsUrl,
-  Length,
-  Min,
-} from 'class-validator';
-import { Offer } from '../../offers/entities/offer.entity';
-import { Wish } from '../../wishes/entities/wish.entity';
-import { Wishlist } from '../../wishlists/entities/wishlist.entity';
+import { Column, Entity, OneToMany } from 'typeorm';
+import { Length } from 'class-validator';
+import { BasicEntity } from 'src/utils/basic.entity';
+import { Wish } from 'src/wishes/entities/wish.entity';
+import { Wishlist } from 'src/wishlists/entities/wishlist.entity';
+import { Offer } from 'src/offers/entities/offer.entity';
 
 @Entity()
-export class User {
-  @IsInt()
-  @Min(0)
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @CreateDateColumn()
-  @IsDate()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  @IsDate()
-  updatedAt: Date;
-
-  @Column({ unique: true })
-  @IsString()
+export class User extends BasicEntity {
+  @Column({
+    type: 'varchar',
+    unique: true,
+  })
   @Length(2, 30)
   username: string;
 
   @Column({
-    nullable: true,
+    type: 'varchar',
     default: 'Пока ничего не рассказал о себе',
   })
   @Length(2, 200)
-  @IsString()
   about: string;
 
   @Column({
-    nullable: true,
+    type: 'varchar',
     default: 'https://i.pravatar.cc/300',
   })
-  @IsUrl()
   avatar: string;
 
   @Column({
+    type: 'varchar',
     unique: true,
   })
-  @IsEmail()
   email: string;
 
-  @Column()
-  @IsString()
+  @Column({
+    type: 'varchar',
+  })
   password: string;
+
+  @OneToMany(() => Offer, (offer) => offer.user)
+  offers: Offer[];
+
+  @OneToMany(() => Wishlist, (wish) => wish.id)
+  wishlists: Wishlist[];
 
   @OneToMany(() => Wish, (wish) => wish.owner)
   wishes: Wish[];
-
-  @ManyToMany(() => Offer, (offer) => offer.user)
-  @JoinTable()
-  offers: Offer[];
-
-  @OneToMany(() => Wishlist, (wishlist) => wishlist.owner)
-  wishlists: Wishlist[];
 }

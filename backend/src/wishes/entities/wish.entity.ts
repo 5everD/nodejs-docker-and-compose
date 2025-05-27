@@ -1,78 +1,61 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import {
-  IsArray,
-  IsDate,
-  IsDecimal,
-  IsInt,
-  IsString,
-  IsUrl,
-  Length,
-  Min,
-} from 'class-validator';
-import { Offer } from '../../offers/entities/offer.entity';
-import { User } from '../../users/entities/user.entity';
-import { Wishlist } from '../../wishlists/entities/wishlist.entity';
+import { Column, Entity, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
+import { IsUrl, Length } from 'class-validator';
+import { Offer } from 'src/offers/entities/offer.entity';
+import { User } from 'src/users/entities/user.entity';
+import { BasicEntity } from 'src/utils/basic.entity';
+import { Wishlist } from 'src/wishlists/entities/wishlist.entity';
 
 @Entity()
-export class Wish {
-  @PrimaryGeneratedColumn()
-  @IsInt()
-  @Min(0)
-  id: number;
-
-  @CreateDateColumn()
-  @IsDate()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  @IsDate()
-  updatedAt: Date;
-
-  @Column()
+export class Wish extends BasicEntity {
+  @Column({
+    type: 'varchar',
+  })
   @Length(1, 250)
-  @IsString()
   name: string;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+  })
   @IsUrl()
   link: string;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+  })
   @IsUrl()
   image: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  @IsDecimal()
+  @Column({
+    type: 'decimal',
+    scale: 2,
+  })
   price: number;
 
-  @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  @IsDecimal()
+  @Column({
+    type: 'decimal',
+    scale: 2,
+    default: 0,
+  })
   raised: number;
+
+  @Column({
+    type: 'varchar',
+  })
+  @Length(1, 1024)
+  description: string;
 
   @ManyToOne(() => User, (user) => user.wishes)
   owner: User;
 
-  @Column()
-  @Length(1, 1024)
-  @IsString()
-  description: string;
-
   @OneToMany(() => Offer, (offer) => offer.item)
-  @IsArray()
   offers: Offer[];
 
-  @Column('int', { default: 0 })
-  @IsInt()
-  copied: number;
+  @ManyToMany(() => Wishlist, (wishlist) => wishlist.items)
+  wishlist: Wishlist[];
 
-  @ManyToOne(() => Wishlist, (list) => list.items)
-  wishlist: Wishlist;
+  @Column({
+    type: 'integer',
+    default: 0,
+  })
+  copied: number;
 }

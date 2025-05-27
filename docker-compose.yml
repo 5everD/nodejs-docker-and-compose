@@ -4,7 +4,7 @@ services:
     build:
       context: frontend
       dockerfile: Dockerfile
-    image: kupipodariday-frontend:1.0.0
+    image: 5everd/frontend
     ports:
       - "8081:80"
     networks:
@@ -16,7 +16,7 @@ services:
     build:
       context: backend
       dockerfile: Dockerfile
-    image: kupipodariday-backend:1.0.0
+    image: 5everd/backend
     env_file:
       - ./backend/.env
     ports:
@@ -29,7 +29,7 @@ services:
 
   database:
     container_name: postgres
-    image: "postgres:latest"
+    image: "postgres:alpine"
     env_file:
       - ./backend/.env
     networks:

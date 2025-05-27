@@ -1,46 +1,35 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Offer } from './offers/entities/offer.entity';
-import { OffersModule } from './offers/offers.module';
-import { User } from './users/entities/user.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { AppController } from './app.controller';
 import { UsersModule } from './users/users.module';
-import { Wish } from './wishes/entities/wish.entity';
 import { WishesModule } from './wishes/wishes.module';
-import { Wishlist } from './wishlists/entities/wishlist.entity';
 import { WishlistsModule } from './wishlists/wishlists.module';
-import { AuthModule } from "./auth/auth.module";
-import { JwtModule } from "@nestjs/jwt";
+import { OffersModule } from './offers/offers.module';
+import { AuthModule } from './auth/auth.module';
+import { HashModule } from './hash/hash.module';
+import typeOrmConfig from './config/typeORM.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env',
       isGlobal: true,
+      envFilePath: '.env',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
+      useFactory: typeOrmConfig,
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('POSTGRES_HOST'),
-        port: configService.get('POSTGRES_PORT'),
-        username: configService.get('POSTGRES_USER'),
-        password: configService.get('POSTGRES_PASSWORD'),
-        database: configService.get('POSTGRES_DB'),
-        entities: [Offer, User, Wish, Wishlist],
-        synchronize: true,
-      }),
     }),
+    HashModule,
     UsersModule,
     WishesModule,
     WishlistsModule,
     OffersModule,
     AuthModule,
-    JwtModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AppController],
+  providers: [JwtService],
 })
-
 export class AppModule {}

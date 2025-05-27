@@ -5,86 +5,50 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
-  UseGuards,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt.auth.guard';
-import { WishesService } from '../wishes/wishes.service';
-import { PasswordService } from '../password/password.service';
-import { User } from './entities/user.entity';
+import { RequestWithUser } from 'src/types/request';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { FindUserDto } from './dto/find-user.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtGuard)
 @Controller('users')
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly wishesService: WishesService,
-    private readonly passwordService: PasswordService,
-  ) {}
-
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
-  }
-
-  @Get(':username')
-  findOne(@Param('username') username: string) {
-    return this.usersService.findOneByUsername(username);
-  }
-
-  @Patch(':id')
-  updateOne(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.updateOne(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  removeOne(@Param('id') id: string) {
-    return this.usersService.removeOne(+id);
-  }
-
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
-  }
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  async getCurrentUser(@Req() req: { user: User }) {
-    return await this.usersService.findOne(req.user.id);
+  getUser(@Req() req: RequestWithUser) {
+    return this.usersService.findById(req.user.id);
   }
 
   @Patch('me')
-  async updateMe(
-    @Req() req: { user: User },
+  updateUser(
+    @Req() req: RequestWithUser,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    if ('password' in updateUserDto) {
-      updateUserDto.password = await this.passwordService.hashPassword(
-        updateUserDto.password!,
-      );
-    }
-
     return this.usersService.updateOne(req.user.id, updateUserDto);
   }
 
   @Get('me/wishes')
-  async findMeWishes(@Req() req: { user: User }) {
-    return await this.wishesService.findUserWishes(req.user);
+  getUserWishes(@Req() req: RequestWithUser) {
+    return this.usersService.getUserWishesById(req.user.id);
   }
 
-  @Get(':username/wishes')
-  async findOneWithWishes(@Param('username') username: string) {
-    const user = await this.usersService.findOneByUsername(username);
-
-    return this.wishesService.findUserWishes(user!);
+  @Get(':username')
+  findOne(@Param('username') username: string) {
+    return this.usersService.findOne(username);
   }
 
   @Post('find')
-  async find(@Body() body: { query: string }) {
-    return this.usersService.findManyByQuery(body.query);
+  findMany(@Body() reqBody: FindUserDto) {
+    return this.usersService.findMany(reqBody.query);
+  }
+
+  @Get(':username/wishes')
+  getUserWishesByName(@Param('username') username: string) {
+    return this.usersService.getUserWishesByName(username);
   }
 }

@@ -1,40 +1,36 @@
-export class CreateWishlistDto {}
 import {
-  IsDecimal,
-  IsNotEmpty,
-  IsOptional,
   IsString,
+  IsNumber,
+  MaxLength,
+  MinLength,
+  Min,
   IsUrl,
-  Length,
+  IsPositive,
 } from 'class-validator';
 
 export class CreateWishDto {
   @IsString()
-  @Length(1, 250)
-  @IsNotEmpty()
+  @MinLength(1, {
+    message: 'Название подарка не может быть короче 1-го символа',
+  })
+  @MaxLength(250, {
+    message: 'Название подарка не может быть длиннее 250 символов',
+  })
   name: string;
 
+  @IsString()
   @IsUrl()
-  @IsNotEmpty()
   link: string;
 
+  @IsString()
   @IsUrl()
-  @IsNotEmpty()
   image: string;
 
-  @IsDecimal()
-  @IsNotEmpty()
+  @Min(1)
+  @IsNumber()
+  @IsPositive()
   price: number;
 
-  @IsDecimal()
-  @IsOptional()
-  raised?: number;
-
   @IsString()
-  @Length(1, 1024)
-  @IsNotEmpty()
   description: string;
-
-  @IsOptional()
-  copied?: number;
 }
