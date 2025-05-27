@@ -14,13 +14,14 @@ import { PasswordModule } from '../password/password.module';
     UsersModule,
     PasswordModule,
     PassportModule,
+    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION_TIME') },
+        signOptions: { expiresIn: '8h' },
       }),
-      inject: [ConfigService],
     }),
   ],
   controllers: [AuthController],

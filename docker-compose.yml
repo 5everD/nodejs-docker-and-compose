@@ -1,18 +1,18 @@
 services:
   frontend:
-    container_name: kupipodariday-frontend
+    container_name: frontend
     build:
       context: frontend
       dockerfile: Dockerfile
     image: kupipodariday-frontend:1.0.0
     ports:
-      - "8080:80"
+      - "8081:80"
     networks:
       - external
     restart: always
 
   backend:
-    container_name: kupipodariday-backend
+    container_name: backend
     build:
       context: backend
       dockerfile: Dockerfile
@@ -28,7 +28,7 @@ services:
     restart: always
 
   database:
-    container_name: kupipodariday-postgres
+    container_name: postgres
     image: "postgres:latest"
     env_file:
       - ./backend/.env

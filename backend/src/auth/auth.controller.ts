@@ -7,16 +7,16 @@ import { User } from '../users/entities/user.entity';
 
 @Controller()
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
-
-  @Post('signup')
-  async signup(@Body() createUserDto: CreateUserDto) {
-    return await this.authService.signup(createUserDto);
-  }
+  constructor(private authService: AuthService) {}
 
   @UseGuards(LocalGuard)
   @Post('signin')
   signin(@Req() req: { user: User }) {
     return this.authService.login(req.user);
+  }
+
+  @Post('signup')
+  async signup(@Body() createUserDto: CreateUserDto) {
+    return await this.authService.signup(createUserDto);
   }
 }

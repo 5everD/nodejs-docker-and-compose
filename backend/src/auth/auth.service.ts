@@ -5,25 +5,32 @@ import { UsersService } from 'src/users/users.service';
 import { PasswordService } from '../password/password.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/entities/user.entity';
+import { ServerException } from "./exceptions/constructor.exception";
+import { ErrorCode } from "./exceptions/error-constants.exception";
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersService: UsersService,
-    private readonly passwordService: PasswordService,
-    private readonly jwtService: JwtService,
+    private usersService: UsersService,
+    private passwordService: PasswordService,
+    private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
 
   async validateUser(username: string, password: string): Promise<User | null> {
     const user = await this.usersService.findOneByUsername(username);
-    if (
-      user &&
-      (await this.passwordService.verifyPassword(password, user.password))
-    ) {
-      return user;
+
+    if (!user) {
+      throw new ServerException(ErrorCode.LoginOrPasswordIncorrect);
     }
-    return null;
+
+    const matched = await this.passwordService.verifyPassword(password, user.password)
+
+    if (!matched) {
+      throw new ServerException(ErrorCode.LoginOrPasswordIncorrect);
+    }
+
+    return user;
   }
 
   async signup(createUserDto: CreateUserDto) {
@@ -31,11 +38,11 @@ export class AuthService {
       createUserDto.password,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...user } = await this.usersService.create({
       ...createUserDto,
       password: hashedPassword,
     });
+
     return user;
   }
 
@@ -44,7 +51,7 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload, {
         secret: this.configService.get('JWT_SECRET'),
-        expiresIn: this.configService.get('JWT_EXPIRATION_TIME'),
+        expiresIn: '8h',
       }),
     };
   }
